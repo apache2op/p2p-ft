@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Send files directly between browsers with a 6-digit code. No uploads, no accounts.">
+  <title>P2P Drop — Direct file transfer</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2310151c'/%3E%3Cpath d='M18 26h22l-7-7M46 38H24l7 7' fill='none' stroke='%235eead4' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="app-header">
+      <a class="brand" href="./" aria-label="P2P Drop home">
+        <span class="brand-mark" aria-hidden="true">⇄</span>
+        <span>P2P Drop</span>
+      </a>
+      <p class="tagline">Direct browser-to-browser file transfer. Nothing is uploaded.</p>
+    </header>
+
+    <div id="alert" class="alert" role="alert" data-tone="error" hidden>
+      <span id="alert-message" class="alert-message"></span>
+      <div class="alert-actions">
+        <button id="alert-action" class="btn btn-small" type="button" hidden></button>
+        <button id="alert-dismiss" class="icon-btn" type="button" aria-label="Dismiss message">×</button>
+      </div>
+    </div>
+
+    <section id="view-landing" class="view" aria-labelledby="landing-title">
+      <h1 id="landing-title" class="sr-only">P2P Drop</h1>
+      <div class="hero-actions">
+        <button id="btn-send" class="choice" type="button">
+          <span class="choice-icon" aria-hidden="true">↑</span>
+          <span class="choice-text">
+            <strong>Send a file</strong>
+            <small>Create a code and share it</small>
+          </span>
+        </button>
+        <button id="btn-receive" class="choice" type="button">
+          <span class="choice-icon" aria-hidden="true">↓</span>
+          <span class="choice-text">
+            <strong>Receive a file</strong>
+            <small>Enter the sender's code</small>
+          </span>
+        </button>
+      </div>
+      <p class="note">The signaling service only introduces the two browsers. File bytes travel directly over WebRTC.</p>
+    </section>
+
+    <section id="view-sender" class="view" aria-labelledby="sender-title" hidden>
+      <div class="view-head">
+        <button id="sender-back" class="link-btn" type="button">← Back</button>
+        <h1 id="sender-title">Send a file</h1>
+      </div>
+
+      <div class="code-card">
+        <p class="eyebrow">Share this code</p>
+        <div class="code-row">
+          <output id="sender-code" class="code" aria-live="polite" aria-label="Room code">------</output>
+          <button id="btn-copy" class="btn btn-small" type="button" disabled>Copy</button>
+        </div>
+        <p id="sender-status" class="status" data-tone="busy" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-text">Connecting to the signaling server…</span>
+        </p>
+      </div>
+
+      <div class="file-card">
+        <label id="file-picker-label" class="file-picker" for="file-input">
+          <span class="file-picker-icon" aria-hidden="true">＋</span>
+          <span>
+            <strong>Choose a file</strong>
+            <small>Up to 1 GB</small>
+          </span>
+        </label>
+        <input id="file-input" class="sr-only" type="file">
+        <div id="file-info" class="file-info" hidden>
+          <span id="file-name" class="file-name"></span>
+          <span id="file-size" class="file-size"></span>
+        </div>
+        <p id="file-note" class="hint" hidden></p>
+        <button id="btn-send-file" class="btn btn-primary btn-wide" type="button" disabled>Send file</button>
+      </div>
+
+      <button id="sender-reset" class="btn btn-ghost" type="button">Cancel</button>
+    </section>
+
+    <section id="view-receiver" class="view" aria-labelledby="receiver-title" hidden>
+      <div class="view-head">
+        <button id="receiver-back" class="link-btn" type="button">← Back</button>
+        <h1 id="receiver-title">Receive a file</h1>
+      </div>
+
+      <div class="receive-card">
+        <label class="field-label" for="code-input">Enter the 6-digit code</label>
+        <input id="code-input" class="code-input" type="text" inputmode="numeric" autocomplete="one-time-code"
+               pattern="[0-9]{6}" maxlength="6" placeholder="000000" aria-describedby="receiver-status">
+        <button id="btn-connect" class="btn btn-primary btn-wide" type="button" disabled>Connect</button>
+        <p id="receiver-status" class="status" data-tone="idle" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-text">Enter the code from the sender.</span>
+        </p>
+      </div>
+
+      <button id="receiver-reset" class="btn btn-ghost" type="button">Back</button>
+    </section>
+
+    <section id="transfer-panel" class="transfer-card" aria-labelledby="transfer-title" hidden>
+      <div class="transfer-head">
+        <div>
+          <p class="eyebrow" id="transfer-role">Transfer</p>
+          <h2 id="transfer-title" class="file-title">file</h2>
+        </div>
+        <span id="transfer-badge" class="badge" data-tone="busy">Transferring</span>
+      </div>
+
+      <progress id="progress" class="progress" max="100" value="0" aria-label="Transfer progress"></progress>
+      <div class="progress-meta">
+        <span id="progress-percent">0%</span>
+        <span id="progress-bytes">0 B / 0 B</span>
+      </div>
+
+      <dl class="metrics">
+        <div class="metric"><dt>Status</dt><dd id="metric-status">—</dd></div>
+        <div class="metric"><dt>Speed</dt><dd id="metric-speed">—</dd></div>
+        <div class="metric"><dt>ETA</dt><dd id="metric-eta">—</dd></div>
+        <div class="metric"><dt>Remaining</dt><dd id="metric-remaining">—</dd></div>
+      </dl>
+
+      <a id="download-link" class="btn btn-primary btn-wide" href="#" download hidden>Download file</a>
+      <p id="transfer-hint" class="hint" hidden></p>
+      <button id="transfer-reset" class="btn btn-ghost" type="button">Start over</button>
+    </section>
+
+    <footer class="app-footer">
+      <span>No uploads. No accounts.</span>
+      <span class="footer-dot" aria-hidden="true">·</span>
+      <span>Keep both tabs open during a transfer.</span>
+    </footer>
+  </main>
+
+  <script src="./vendor/peerjs.min.js"></script>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
